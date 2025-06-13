@@ -62,17 +62,13 @@ class AuthenticationsHandler {
 
     const { refreshToken } = req.payload;
 
-    try {
-      await this._authenticationsService.verifyRefreshToken(refreshToken);
-      await this._authenticationsService.deleteRefreshToken(refreshToken);
+    await this._authenticationsService.verifyRefreshToken(refreshToken);
+    await this._authenticationsService.deleteRefreshToken(refreshToken);
 
-      return {
-        status: "success",
-        message: "Refresh token berhasil dihapus",
-      };
-    } catch (e) {
-      throw new AuthenticationError("Refresh token tidak valid");
-    }
+    return {
+      status: "success",
+      message: "Refresh token berhasil dihapus",
+    };
   }
 }
 
