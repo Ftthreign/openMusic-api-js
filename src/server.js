@@ -1,8 +1,11 @@
 require("dotenv").config();
 
-// hapi plugins
+// hapi library
 const Hapi = require("@hapi/hapi");
 const Jwt = require("@hapi/jwt");
+const Inert = require("@hapi/inert");
+
+const path = require("path");
 
 const albums = require("./api/albums");
 const songs = require("./api/songs");
@@ -10,6 +13,8 @@ const users = require("./api/users");
 const authentications = require("./api/auth");
 const playlists = require("./api/playlists");
 const collaborations = require("./api/collaborations");
+const exportsPlugin = require("./api/exports");
+const uploads = require("./api/uploads");
 
 // services
 const {
@@ -20,6 +25,10 @@ const {
   PlaylistsService,
   CollaborationsService,
   PlaylistActivitiesService,
+  LikesService,
+  ProducerService,
+  StorageService,
+  CacheService,
 } = require("./services");
 
 // validator
@@ -29,16 +38,29 @@ const UsersValidator = require("./validators/users");
 const AuthenticationsValidator = require("./validators/auth");
 const PlaylistsValidator = require("./validators/playlists");
 const CollaborationsValidator = require("./validators/collaborations");
+const ExportsValidator = require("./validators/exports");
+const UploadsValidator = require("./validators/uploads");
 
-// error handling
-const { ClientError } = require("./utils");
+// error handling and configuration
+const {
+  ClientError,
+  AuthenticationError,
+  AuthorizationError,
+  config,
+} = require("./utils");
 
 const init = async () => {
+  const cacheService = new CacheService();
   const albumsService = new AlbumsService();
   const songsService = new SongsService();
   const usersService = new UsersService();
   const authenticationsService = new AuthenticationsService();
   const playlistsActivitiesService = new PlaylistActivitiesService();
+  const producerService = ProducerService;
+  const storageService = new StorageService(
+    path.resolve(__dirname, "../albums/covers")
+  );
+  const likesService = new LikesService(albumsService, cacheService);
   const collaborationsService = new CollaborationsService(null, usersService);
   const playlistsService = new PlaylistsService(collaborationsService);
 
@@ -54,24 +76,20 @@ const init = async () => {
     },
   });
 
-  await server.register([
-    {
-      plugin: Jwt,
-    },
-  ]);
+  await server.register([Jwt, Inert]);
 
   server.auth.strategy("openmusic_jwt", "jwt", {
-    keys: process.env.ACCESS_TOKEN_KEY,
+    keys: config.jwt.accessTokenKey,
     verify: {
       aud: false,
       iss: false,
       sub: false,
-      maxAgeSec: process.env.ACCESS_TOKEN_AGE,
+      maxAgeSec: config.jwt.accessTokenAge,
     },
     validate: (artifacts, request, h) => {
-      const { id } = artifacts.decoded.payload;
+      const { userId } = artifacts.decoded.payload;
 
-      request.auth.credentials = { id };
+      request.auth.credentials = { userId };
 
       return { isValid: true };
     },
@@ -112,6 +130,7 @@ const init = async () => {
       options: {
         service: albumsService,
         validator: AlbumsValidator,
+        likesService: likesService,
       },
     },
     {
@@ -152,7 +171,33 @@ const init = async () => {
         validator: CollaborationsValidator,
       },
     },
+    {
+      plugin: exportsPlugin,
+      options: {
+        playlistsService: playlistsService,
+        producerService: producerService,
+        validator: ExportsValidator,
+      },
+    },
+    {
+      plugin: uploads,
+      options: {
+        albumsService: albumsService,
+        storageService: storageService,
+        validator: UploadsValidator,
+      },
+    },
   ]);
+
+  server.route({
+    method: "GET",
+    path: "/albums/covers/{param*}",
+    handler: {
+      directory: {
+        path: path.resolve(__dirname, "../albums/covers"),
+      },
+    },
+  });
 
   await server.start();
 

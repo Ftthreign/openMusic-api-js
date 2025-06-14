@@ -1,8 +1,9 @@
 const { Pool } = require("pg");
+const { config } = require("../../utils");
 
 class PostgresdbService {
   constructor() {
-    this._pool = new Pool();
+    this._pool = new Pool(config.postgres);
   }
 
   async query(queryString, values = []) {

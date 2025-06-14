@@ -28,7 +28,7 @@ class AlbumsService extends PostgresdbService {
 
   async getAlbumById(id) {
     const query = {
-      text: "SELECT id, name, year FROM albums WHERE id = $1",
+      text: "SELECT id, name, year, cover_url FROM albums WHERE id = $1",
       values: [id],
     };
 
@@ -36,7 +36,12 @@ class AlbumsService extends PostgresdbService {
 
     if (!res.rows.length) throw new ClientError("Album tidak ditemukan", 404);
 
-    return res.rows[0];
+    const album = res.rows[0];
+
+    album.coverUrl = album.cover_url;
+    delete album.cover_url;
+
+    return album;
   }
 
   async editAlbumById(id, { name, year }) {
@@ -66,26 +71,44 @@ class AlbumsService extends PostgresdbService {
 
   async getAlbumByIdWithSongs(id) {
     const albumQuery = {
-      text: "SELECT id, name, year FROM albums WHERE id = $1",
+      text: "SELECT id, name, year, cover_url FROM albums WHERE id = $1",
       values: [id],
     };
+
+    const albumResult = await this.query(albumQuery.text, albumQuery.values);
+    if (!albumResult.rows.length)
+      throw new ClientError("Album tidak ditemukan", 404);
+
+    const album = albumResult.rows[0];
+    album.coverUrl = album.cover_url;
+    delete album.cover_url;
 
     const songsQuery = {
       text: 'SELECT id, title, performer FROM songs WHERE "album_id" = $1',
       values: [id],
     };
 
-    const albumResult = await this.query(albumQuery.text, albumQuery.values);
-
-    if (!albumResult.rows.length)
-      throw new ClientError("Album tidak ditemukan", 404);
-
     const songsResult = await this.query(songsQuery.text, songsQuery.values);
-    const album = albumResult.rows[0];
 
     album.songs = songsResult.rows;
 
     return album;
+  }
+
+  async updateAlbumCover(albumId, coverUrl) {
+    const updatedAt = new Date().toISOString();
+    const query = {
+      text: "UPDATE albums SET cover_url = $1, updated_at = $2 WHERE id = $3 RETURNING id",
+      values: [coverUrl, updatedAt, albumId],
+    };
+
+    const res = await this.query(query.text, query.values);
+
+    if (!res.rows.length)
+      throw new ClientError(
+        "Gagal memperbarui sampul album. Id album tidak ditemukan",
+        404
+      );
   }
 }
 

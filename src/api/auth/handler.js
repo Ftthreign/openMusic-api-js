@@ -1,6 +1,5 @@
 const autoBind = require("auto-bind");
 const tokenManager = require("../../services/tokenManager");
-const { AuthenticationError, InvariantError } = require("../../utils");
 
 class AuthenticationsHandler {
   constructor(usersService, authenticationsService, validator) {
