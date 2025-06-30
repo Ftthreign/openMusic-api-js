@@ -203,20 +203,9 @@ To run the `openmusic-consumer` application, ensure the following are installed:
   - Confirm that the OpenMusic API is sending messages to the correct queue (`export:playlist`).
   - Check RabbitMQ management UI (`http://localhost:15672`) for queue status.
 - **Docker Issues**:
+
   - Ensure Docker and Docker Compose are installed and running.
   - Check container logs for errors: `docker-compose logs rabbitmq` or `docker-compose logs redis`.
-
-## Contributing
-
-- Fork the repository and create a pull request with your changes.
-- Follow the coding style used in the project (e.g., ESLint rules if provided).
-- Include tests for new features or bug fixes.
-
-## License
-
-This project is licensed under the MIT License. See the `LICENSE` file in the repository for details.
-
-## References
 
 - RabbitMQ Documentation: https://www.rabbitmq.com/
 - Redis Documentation: https://redis.io/
