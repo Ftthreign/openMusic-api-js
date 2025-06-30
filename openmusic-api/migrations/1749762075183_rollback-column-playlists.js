@@ -1,9 +1,4 @@
 /**
- * @type {import('node-pg-migrate').MigrationBuilder}
- */
-export const shorthands = undefined;
-
-/**
  * @param {import('node-pg-migrate').MigrationBuilder} pgm
  */
 export const up = (pgm) => {
